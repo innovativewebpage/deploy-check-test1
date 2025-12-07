@@ -1,0 +1,70 @@
+name: Build React App and Analyze with SonarCloud
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+
+    steps:
+      # 1️⃣ Checkout your repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2️⃣ Verify that lockfile exists
+      - name: Verify lockfile path
+        run: |
+          echo "Current dir: $(pwd)"
+          ls -l package-lock.json || (echo "❌ package-lock.json not found!" && exit 1)
+
+      # 3️⃣ Setup Node.js with proper cache path
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      # 4️⃣ Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # 5️⃣ Build your React app
+      - name: Build React App
+        run: npm run build
+
+      # 6️⃣ Run SonarCloud analysis
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v5.0.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: >
+            -Dsonar.host.url=https://sonarcloud.io
+            -Dsonar.organization=innovativewebpage
+            -Dsonar.projectKey=innovativewebpage_simple-app1
+            -Dsonar.projectName=simple-app1
+            -Dsonar.sources=client/src
+            -Dsonar.exclusions=**/node_modules/**,**/build/**,**/public/**
+
+      # 7️⃣ Upload production build
+      - name: Upload production build
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-build
+          path: client/build
