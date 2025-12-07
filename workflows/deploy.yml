@@ -1,37 +1,46 @@
-name: 🚀 Deploy React App to AWS S3 + CloudFront
+name: CI/CD - SonarCloud + Deploy to S3
 
 on:
   push:
-    branches:
-      - main
+    branches: ["main"]
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
         with:
-          node-version: 20
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
       - name: Install dependencies
-        run: |
-          cd client
-          npm install
+        run: npm install
 
-      - name: Build React app
-        run: |
-          cd client
-          npm run build
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=deploy-check-test1
+            -Dsonar.organization=a-omar-rizwan
 
-      - name: Deploy to S3
-        run: |
-          aws s3 sync ./client/build s3://${{ secrets.S3_BUCKET }} --delete --region ${{ secrets.AWS_REGION }}
+      - name: Build React App
+        run: npm run build
 
-      - name: Invalidate CloudFront cache
-        run: |
-          aws cloudfront create-invalidation --distribution-id ${{ secrets.DISTRIBUTION_ID }} --paths "/*" --region ${{ secrets.AWS_REGION }}
+      - name: Deploy build to S3
+        uses: jakejarvis/s3-sync-action@master
+        with:
+          args: --delete
+        env:
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ap-south-1
+          SOURCE_DIR: "build"
