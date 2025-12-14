@@ -19,12 +19,10 @@ jobs:
         with:
           node-version: 18
 
-      # 🔹 Install React dependencies
       - name: Install React dependencies
         working-directory: my-app
         run: npm install
 
-      # 🔹 SonarCloud scan (React)
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
         env:
@@ -35,12 +33,10 @@ jobs:
             -Dsonar.projectKey=innovativewebpage_deploy-check-test1
             -Dsonar.organization=innovativewebpage
 
-      # 🔹 Build React app
       - name: Build React App
         working-directory: my-app
         run: npm run build
 
-      # 🔹 Deploy React build to S3
       - name: Deploy React to S3
         uses: jakejarvis/s3-sync-action@master
         with:
