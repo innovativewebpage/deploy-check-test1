@@ -2,27 +2,34 @@ name: CI/CD - SonarCloud + Deploy React to S3
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout repository
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # 2️⃣ Setup Node.js
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: npm
+          cache-dependency-path: my-app/package-lock.json
 
+      # 3️⃣ Install dependencies
       - name: Install React dependencies
         working-directory: my-app
-        run: npm install
+        run: npm ci
 
+      # 4️⃣ SonarCloud Scan
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
         env:
@@ -33,10 +40,20 @@ jobs:
             -Dsonar.projectKey=innovativewebpage_deploy-check-test1
             -Dsonar.organization=innovativewebpage
 
+      # 5️⃣ Build React app
       - name: Build React App
         working-directory: my-app
         run: npm run build
 
+      # 🔍 Safety check (prevents deploy failure)
+      - name: Verify build output
+        run: |
+          echo "Listing my-app directory"
+          ls -la my-app
+          echo "Listing build directory"
+          ls -la my-app/build
+
+      # 6️⃣ Deploy to S3
       - name: Deploy React to S3
         uses: jakejarvis/s3-sync-action@master
         with:
