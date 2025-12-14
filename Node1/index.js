@@ -7,6 +7,6 @@ const app = express();
 app.use(express.json());
 app.use("/api/employee", EmployeeRoute);
 app.use("/imagesomar", express.static(path.join(__dirname, "images")));
-app.listen(3000, function () {
+app.listen(5000, function () {
     console.log("server started ss");
 });
